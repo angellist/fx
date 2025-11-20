@@ -24,6 +24,8 @@ module Fx
 
       def create_migration_file
         return if skip_migration_creation?
+
+        # todo- this should work for multiple dbs
         if updating_existing_trigger?
           migration_template(
             "db/migrate/update_trigger.erb",

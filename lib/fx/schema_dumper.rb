@@ -8,18 +8,28 @@ module Fx
 
       if Fx.configuration.dump_functions_at_beginning_of_schema
         functions(stream)
-      end
-
-      super
-
-      unless Fx.configuration.dump_functions_at_beginning_of_schema
+        casts(stream)
+        super
+      else
+        super
         functions(stream)
+        casts(stream)
       end
 
       triggers(stream)
     end
 
     private
+
+    def casts(stream)
+      dumpable_casts_in_database = Fx.database.casts
+
+      dumpable_casts_in_database.each do |cast|
+        stream.puts(cast.to_schema)
+      end
+
+      stream.puts if dumpable_casts_in_database.any?
+    end
 
     def functions(stream)
       dumpable_functions_in_database = Fx.database.functions

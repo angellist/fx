@@ -1,6 +1,22 @@
 module Fx
   # @api private
   module Statements
+    def create_cast(source_type, target_type, options = {})
+      ruby_name = Fx::Cast.cast_ruby_name(source_type, target_type)
+      Fx.database.create_cast(cast_sql_definition(ruby_name, options))
+    end
+
+    def drop_cast(source_type, target_type, options = {})
+      db_name = Fx::Cast.cast_db_name(source_type, target_type)
+      Fx.database.drop_cast(db_name)
+    end
+
+    def update_cast(source_type, target_type, options = {})
+      db_name = Fx::Cast.cast_db_name(source_type, target_type)
+      ruby_name = Fx::Cast.cast_ruby_name(source_type, target_type)
+      Fx.database.update_cast(db_name, cast_sql_definition(ruby_name, options))
+    end
+
     # Create a new database function.
     #
     # @param name [String, Symbol] The name of the database function.
@@ -27,19 +43,7 @@ module Fx
     #   SQL
     #
     def create_function(name, options = {})
-      version = options.fetch(:version, 1)
-      sql_definition = options[:sql_definition]
-
-      if version.nil? && sql_definition.nil?
-        raise(
-          ArgumentError,
-          "version or sql_definition must be specified"
-        )
-      end
-      sql_definition = sql_definition.strip_heredoc if sql_definition
-      sql_definition ||= Fx::Definition.function(name: name, version: version).to_sql
-
-      Fx.database.create_function(sql_definition)
+      Fx.database.create_function(function_sql_defintion(name, options))
     end
 
     # Drop a database function by name.
@@ -87,20 +91,7 @@ module Fx
     #   SQL
     #
     def update_function(name, options = {})
-      version = options[:version]
-      sql_definition = options[:sql_definition]
-
-      if version.nil? && sql_definition.nil?
-        raise(
-          ArgumentError,
-          "version or sql_definition must be specified"
-        )
-      end
-
-      sql_definition = sql_definition.strip_heredoc if sql_definition
-      sql_definition ||= Fx::Definition.function(name: name, version: version).to_sql
-
-      Fx.database.update_function(name, sql_definition)
+      Fx.database.update_function(name, function_sql_defintion(name, options))
     end
 
     # Create a new database trigger.
@@ -126,25 +117,7 @@ module Fx
     #    SQL
     #
     def create_trigger(name, options = {})
-      version = options[:version]
-      _on = options[:on]
-      sql_definition = options[:sql_definition]
-
-      if version.present? && sql_definition.present?
-        raise(
-          ArgumentError,
-          "sql_definition and version cannot both be set"
-        )
-      end
-
-      if version.nil?
-        version = 1
-      end
-
-      sql_definition = sql_definition.strip_heredoc if sql_definition
-      sql_definition ||= Fx::Definition.trigger(name: name, version: version).to_sql
-
-      Fx.database.create_trigger(sql_definition)
+      Fx.database.create_trigger(trigger_sql_definition(name, options))
     end
 
     # Drop a database trigger by name.
@@ -198,6 +171,46 @@ module Fx
     #    SQL
     #
     def update_trigger(name, options = {})
+      raise ArgumentError, "on is required" if on.nil?
+
+      Fx.database.update_trigger(
+        name,
+        on: on,
+        sql_definition: trigger_sql_definition(name, options)
+      )
+    end
+
+    private
+
+    def cast_sql_definition(name, options)
+      version = options.fetch(:version, 1)
+      sql_definition = options[:sql_definition]
+
+      if version.nil? && sql_definition.nil?
+        raise(
+          ArgumentError,
+          "version or sql_definition must be specified"
+        )
+      end
+      sql_definition = sql_definition.strip_heredoc if sql_definition
+      sql_definition || Fx::Definition.cast(name: name, version: version).to_sql
+    end
+
+    def function_sql_defintion(name, options)
+      version = options.fetch(:version, 1)
+      sql_definition = options[:sql_definition]
+
+      if version.nil? && sql_definition.nil?
+        raise(
+          ArgumentError,
+          "version or sql_definition must be specified"
+        )
+      end
+      sql_definition = sql_definition.strip_heredoc if sql_definition
+      sql_definition || Fx::Definition.function(name: name, version: version).to_sql
+    end
+
+    def trigger_sql_definition(name, options)
       version = options[:version]
       on = options[:on]
       sql_definition = options[:sql_definition]
@@ -216,18 +229,8 @@ module Fx
         )
       end
 
-      if on.nil?
-        raise ArgumentError, "on is required"
-      end
-
       sql_definition = sql_definition.strip_heredoc if sql_definition
       sql_definition ||= Fx::Definition.trigger(name: name, version: version).to_sql
-
-      Fx.database.update_trigger(
-        name,
-        on: on,
-        sql_definition: sql_definition
-      )
     end
   end
 end

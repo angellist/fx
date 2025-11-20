@@ -1,8 +1,13 @@
 module Fx
   # @api private
   class Definition
+    CAST = "cast".freeze
     FUNCTION = "function".freeze
     TRIGGER = "trigger".freeze
+
+    def self.cast(name:, version:)
+      new(name: name, version: version, type: CAST)
+    end
 
     def self.function(name:, version:)
       new(name: name, version: version, type: FUNCTION)

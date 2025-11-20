@@ -1,6 +1,34 @@
 module Fx
   # @api private
   module CommandRecorder
+    # Casts
+
+    def create_cast(*args)
+      record(:create_cast, args)
+    end
+
+    def drop_cast(*args)
+      record(:drop_cast, args)
+    end
+
+    def update_cast(*args)
+      record(:update_cast, args)
+    end
+
+    def invert_create_cast(args)
+      [:drop_cast, args]
+    end
+
+    def invert_drop_cast(args)
+      perform_inversion(:create_cast, args)
+    end
+
+    def invert_update_cast(args)
+      perform_inversion(:update_cast, args)
+    end
+
+    # Functions
+
     def create_function(*args)
       record(:create_function, args)
     end
@@ -24,6 +52,8 @@ module Fx
     def invert_update_function(args)
       perform_inversion(:update_function, args)
     end
+
+    # Triggers
 
     def create_trigger(*args)
       record(:create_trigger, args)
