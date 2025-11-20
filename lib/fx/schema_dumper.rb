@@ -2,6 +2,10 @@ module Fx
   # @api private
   module SchemaDumper
     def tables(stream)
+      # don't apply Fx schema dumping to non-postgres sql databases
+      db_connection_adapter = Fx.configuration.database.instance_variable_get(:@connectable)&.connection
+      return super if !db_connection_adapter.is_a?(ActiveRecord::ConnectionAdapters::PostgreSQLAdapter)
+
       if Fx.configuration.dump_functions_at_beginning_of_schema
         functions(stream)
       end
