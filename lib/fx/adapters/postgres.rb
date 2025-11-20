@@ -1,3 +1,4 @@
+require "fx/adapters/postgres/casts"
 require "fx/adapters/postgres/connection"
 require "fx/adapters/postgres/functions"
 require "fx/adapters/postgres/triggers"
@@ -40,6 +41,16 @@ module Fx
         @connectable = connectable
       end
 
+      # Returns an array of casts in the database.
+      #
+      # This collection of casts is used by the [Fx::SchemaDumper] to
+      # populate the `schema.rb` file.
+      #
+      # @return [Array<Fx::Cast>]
+      def casts
+        Casts.all(connection)
+      end
+
       # Returns an array of functions in the database.
       #
       # This collection of functions is used by the [Fx::SchemaDumper] to
@@ -58,6 +69,18 @@ module Fx
       # @return [Array<Fx::Trigger>]
       def triggers
         Triggers.all(connection)
+      end
+
+      # Creates a cast in the database.
+      #
+      # This is typically called in a migration via
+      # {Fx::Statements::Cast#create_cast}.
+      #
+      # @param sql_definition [String] The SQL schema for the cast.
+      #
+      # @return [void]
+      def create_cast(sql_definition)
+        execute(sql_definition)
       end
 
       # Creates a function in the database.
@@ -83,6 +106,21 @@ module Fx
       def create_trigger(sql_definition)
         execute(sql_definition)
       end
+
+      # Updates a cast in the database.
+      #
+      # This is typically called in a migration via
+      # {Fx::Statements::Cast#update_cast}.
+      #
+      # @param name [String, Symbol] The name of the cast.
+      # @param sql_definition [String] The SQL schema for the cast.
+      #
+      # @return [void]
+      def update_cast(name, sql_definition)
+        drop_cast(name)
+        create_cast(sql_definition)
+      end
+
 
       # Updates a function in the database.
       #
@@ -114,6 +152,18 @@ module Fx
       def update_trigger(name, on:, sql_definition:)
         drop_trigger(name, on: on)
         create_trigger(sql_definition)
+      end
+
+      # Drops the cast from the database
+      #
+      # This is typically called in a migration via
+      # {Fx::Statements::Cast#drop_cast}.
+      #
+      # @param name [String, Symbol] The name of the cast to drop
+      #
+      # @return [void]
+      def drop_cast(name)
+        execute("DROP CAST (#{name});")
       end
 
       # Drops the function from the database
